@@ -1,0 +1,3 @@
+# Build/test files
+/cmake-build-debug
+/test
