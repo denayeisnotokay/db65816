@@ -96,10 +96,6 @@ void load_program(Ram *ram, const char *filename) {
   program.close();
 }
 
-void dump_cpu(Cpu65816 *cpu) {
-
-}
-
 bool add_breakpoint(Address addr) {
   if (bp_count >= MAX_BPS) {
     cout << "Cannot exceed maximum of " << MAX_BPS << " breakpoints.";
@@ -151,6 +147,30 @@ uint8_t getOpCode(Cpu65816 *cpu, Ram *ram) {
 bool isCall(uint8_t opcode) { return opcode == 0x20 || opcode == 0x22 || opcode == 0xFC; }
 bool isReturn(uint8_t opcode) { return opcode == 0x60 || opcode == 0x6B; }
 
+void displayHelpMessage() {
+  cout << endl;
+  cout << "ld.mem [filename]: load the entirety of RAM from a specified binary file or mem.bin" << endl;
+  cout << "ld.program [filename]: load an assembled program from a specified .hex file or program.hex" << endl;
+  cout << "run address: jump to the given address and start the debugger (until next breakpoint)" << endl;
+  cout << "jump address: jump to the given address without running the debugger" << endl;
+  cout << "continue: start or resume the debugger from the current location (until next breakpoint)" << endl;
+  cout << "step: step over current function" << endl;
+  cout << "step.in: step into current function" << endl;
+  cout << "step.out: step out of current function" << endl;
+  cout << "bp.enable: enable all breakpoints" << endl;
+  cout << "bp.disable: disable all breakpoints" << endl;
+  cout << "bp.add address: add a breakpoint at the given address" << endl;
+  cout << "bp.remove address: remove a breakpoint at the given address" << endl;
+  cout << "bp.list: list all currently active breakpoints" << endl;
+  cout << "bp.clear: clear all breakpoints" << endl;
+  cout << "dump.mem [filename]: dump memory to specified file or mem.bin" << endl;
+  cout << "dump.cpu: dump cpu registers and status" << endl;
+  cout << "reset: reset cpu" << endl;
+  cout << "exit: quit this debugger" << endl;
+  cout << "help: display this message" << endl;
+  cout << endl;
+}
+
 int main(int argc, char *argv[]) {
   if (argc > 2) {
     Log::err(LOG_TAG).str("Usage: db658116 [working_directory]").show();
@@ -185,7 +205,9 @@ int main(int argc, char *argv[]) {
   uint8_t inst;
   int depth;
 
-  cout << endl;
+  cout << endl << "Hello, welcome to db65816! Below is a list with descriptions of the available commands." << endl;
+
+  displayHelpMessage();
 
   while (command != "exit") {
     cout << "[" << formatAddress(cpu.getProgramAddress()) << "] db65816> ";
@@ -197,26 +219,7 @@ int main(int argc, char *argv[]) {
     input = (bool) (args >> param);
 
     if (op == "help") {
-      cout << endl;
-      cout << "ld.mem [filename]: load the entirety of RAM from a specified binary file or mem.bin" << endl;
-      cout << "ld.program [filename]: load an assembled program from a specified .hex file or program.hex" << endl;
-      cout << "run address: jump to the given address and start the debugger (until next breakpoint)" << endl;
-      cout << "jump address: jump to the given address without running the debugger" << endl;
-      cout << "continue: start or resume the debugger from the current location (until next breakpoint)" << endl;
-      cout << "step: step over current function" << endl;
-      cout << "step.in: step into current function" << endl;
-      cout << "step.out: step out of current function" << endl;
-      cout << "bp.enable: enable all breakpoints" << endl;
-      cout << "bp.disable: disable all breakpoints" << endl;
-      cout << "bp.add address: add a breakpoint at the given address" << endl;
-      cout << "bp.remove address: remove a breakpoint at the given address" << endl;
-      cout << "bp.list: list all currently active breakpoints" << endl;
-      cout << "bp.clear: clear all breakpoints" << endl;
-      cout << "dump.mem [filename]: dump memory to specified file or mem.bin" << endl;
-      cout << "dump.cpu: dump cpu registers and status" << endl;
-      cout << "exit: quit this debugger" << endl;
-      cout << "help: display this message" << endl;
-      cout << endl;
+
     }
     if (op == "ld.mem") {
       const char *name = input ? param.c_str() : "mem.bin";
@@ -232,12 +235,12 @@ int main(int argc, char *argv[]) {
       if (!input) {
         cout << "Please provide an address for this command." << endl;
       } else {
+        endPointHit = false;
+
         uint16_t offset = stoi(param, nullptr, 16);
         Address addr = Address(0x00, offset);
         cpu.setProgramAddress(addr);
         cout << "Will now continue from $" << formatAddress(addr) << endl;
-
-        endPointHit = false;
       }
     }
     if (op == "continue" || op == "step.in") {
@@ -312,6 +315,12 @@ int main(int argc, char *argv[]) {
     }
     if (op == "dump.cpu") {
       debugger.dumpCpu();
+    }
+    if (op == "reset") {
+      cpu.setRESPin(true);
+      cpu.executeNextInstruction();
+      cpu.executeNextInstruction();
+      cpu.setRESPin(false);
     }
   }
 
